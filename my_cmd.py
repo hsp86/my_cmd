@@ -4,12 +4,15 @@ import os,sys,re
 from _Getch import _Getch
 import config
 
+my_cmd = ["husipeng","hsp86"]
+
 def search_start(src_list,search_str):
     '''查找src_list中以search_str开始的项，返回找到的个数和list'''
     res_num = 0
     res_list = []
     for x in src_list:
-        if x.startswith(search_str) != -1:
+        if x.startswith(search_str) == True:
+            # print "search_start" # 调试用
             res_num = res_num + 1
             res_list.append(x)
     return res_num,res_list
@@ -21,6 +24,7 @@ def search_in(src_list,search_str):
     for x in src_list:
         # if x.find(search_str) != -1:
         if search_str in x:
+            # print "search_in" # 调试用
             res_num = res_num + 1
             res_list.append(x)
     return res_num,res_list
@@ -29,12 +33,13 @@ def search_have(src_list,search_str):
     '''查找src_list中包含search_str各字符的项，返回找到的个数和list'''
     res_num = 0
     res_list = []
-    search_patt = "*"
+    search_patt = ".*"
     for x in search_str:
-        search_patt = search_patt + x + "*"
+        search_patt = search_patt + x + ".*"
     pattern = re.compile(search_patt)
     for x in src_list:
-        s = pattern.search(file_str)
+        # print "search_have" # 调试用
+        s = pattern.search(x)
         if s != None:
             res_num = res_num + 1
             res_list.append(x)
@@ -51,6 +56,12 @@ def fuzzy_search(src_list,search_str):
             res_num,res_list = search_have(src_list,search_str)
     return res_num,res_list
 
+def del_display(st):
+    '''删除显示字符串st'''
+    sys.stdout.write("\b" * len(st)) # 开始，删除原显示字符
+    sys.stdout.write(" " * len(st))
+    sys.stdout.write("\b" * len(st)) # 结束，删除原显示字符
+
 def get_cmd_input():
     '''本函数完成接收用户的输入并返回输入的字符，支持tab搜索已有命令，tab循环显示搜索结果'''
     getch = _Getch()
@@ -62,13 +73,13 @@ def get_cmd_input():
     while ch != "\r": # enter键完成命令输入
         if ch == "\t": # tab键
             if display_num == 0: # 若没搜索过就重新搜索
-                search_res_num,search_res = fuzzy_search(src_list,st) # 模糊搜索st的项
+                search_res_num,search_res = fuzzy_search(my_cmd,st) # 模糊搜索st的项
             # 显示搜索到的第search_res_num个，并设置到st
             if search_res_num > 0: # 搜索到的结果大于0才重新显示，否则不修改st和显示
                 if search_res_num <= display_num:
                     display_num = 0 # 若达到最后一个就回到0重新开始显示
-                sys.stdout.write("\b" * len(st)) # 删除原显示字符
-                st = search_res[display_num]
+                del_display(st) # 删除原显示字符
+                st = search_res[display_num] # 更改st
                 sys.stdout.write(st)
             display_num = display_num + 1 # 自增一，准备下次tab显示的位置，即使没搜索到也自增一，防止下次连续tab再次搜索
         else:
@@ -90,7 +101,7 @@ def get_cmd_input():
 if __name__ == "__main__":
     # st = sys.argv[0]
     st = get_cmd_input()
-    sys.stdout.write("\b" * len(st)) # 删除原显示字符重新显示字符
+    del_display(st) # 删除原显示字符
     print "input:" + st
     fid = os.popen(st)
     print fid.read()
