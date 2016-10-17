@@ -3,16 +3,18 @@
 import os,sys,re
 import config
 
-cmd_list = [] # 存放所有命令名及其内容
-cmd_name_list = [] # 只存放所有命令名
+config.cmd_list = [] # 存放所有命令名及其内容
+config.cmd_name_list = ["quit","init"] # 只存放所有命令名
 def init(cmd_file):
     '''初始化命令，从文件中读取命令及其内容'''
+    config.cmd_list = [] # 重新初始化
+    config.cmd_name_list = ["quit","init"] # 重新初始化
     f = file(cmd_file,'r') # 打开存储命令的文件
     line = f.readline()[:-1] # 读取一行，且去除行末的"\n"
     while len(line) > 0:
         cmd_detail = line.split(config.div_char)
-        cmd_list.append([cmd_detail[0],cmd_detail[1]]) # 存入命令名及其内容，这里说明若要在文件中添加注释可用config.div_char，且不会被计入cmd_list
-        cmd_name_list.append(cmd_detail[0]) # 将命令名存入
+        config.cmd_list.append([cmd_detail[0],cmd_detail[1]]) # 存入命令名及其内容，这里说明若要在文件中添加注释可用config.div_char，且不会被计入cmd_list
+        config.cmd_name_list.append(cmd_detail[0]) # 将命令名存入
         line = f.readline()[:-1] # 读取一行，且去除行末的"\n"
     f.close()
 
@@ -46,7 +48,7 @@ def search_have(src_list,search_str):
     search_patt = ".*"
     for x in search_str:
         search_patt = search_patt + x + ".*"
-    pattern = re.compile(search_patt)
+    pattern = re.compile(search_patt,re.IGNORECASE) # 这里搜索不区分大小写
     for x in src_list:
         # print "search_have" # 调试用
         s = pattern.search(x)
@@ -87,7 +89,7 @@ def get_cmd_input():
     while ch != config.cmd_end: # enter键完成命令输入结束符可在config中配置
         if ch == "\t": # tab键
             if display_num == 0: # 若没搜索过就重新搜索
-                search_res_num,search_res = fuzzy_search(cmd_name_list,cmd) # 模糊搜索cmd的项
+                search_res_num,search_res = fuzzy_search(config.cmd_name_list,cmd) # 模糊搜索cmd的项
             # 显示搜索到的第search_res_num个，并设置到cmd
             if search_res_num > 0: # 搜索到的结果大于0才重新显示，否则不修改cmd和显示
                 if search_res_num <= display_num:
@@ -148,10 +150,19 @@ def add_cmd(cmd_file,add_list):
     f = file(cmd_file,'a') # 打开存储命令的文件
     for x in add_list:
         last_separate = x.rfind(config.separate_char) # 文件命令开始的位置，最后一个目录分隔符后开始
-        last_suffix = x.rfind(config.suffix_char) # 用于文件名后缀
-        if last_separate < last_suffix: # 这种情况说明命令文件名才对，否则不添加
-            f.write(x[last_separate+1:last_suffix] + config.div_char + x + "\n") # 将命令名和命令内容用config.div_char分开后写入文件中
-            print u"添加命令成功：" + x[last_separate+1:last_suffix]
+        last_suffix = x.rfind(config.suffix_char) # 用于取得文件名后缀
+        if last_suffix < 0: # 添加没有后缀的文件或目录作为命令
+            f.write(x[last_separate+1:] + config.div_char + x + "\n") # 将命令名和命令内容用config.div_char分开后写入文件中
+            print u"添加命令成功：" + x[last_separate+1:]
+        elif last_separate < last_suffix: # 有后缀的文件(last_suffix>-1)，当然这里没有考虑.在文件名首的情况
+            if config.suffixs == []: # 若设定为[]则表示支持所有的文件
+                f.write(x[last_separate+1:last_suffix] + config.div_char + x + "\n") # 将命令名和命令内容用config.div_char分开后写入文件中
+                print u"添加命令成功：" + x[last_separate+1:last_suffix]
+            elif x[last_suffix+1:] in config.suffixs: # 否则要后缀在suffixs中存在才添加
+                f.write(x[last_separate+1:last_suffix] + config.div_char + x + "\n") # 将命令名和命令内容用config.div_char分开后写入文件中
+                print u"添加命令成功：" + x[last_separate+1:last_suffix]
+            else:
+                print u"不支持的后缀：" + x # 路径或文件名中，即x中有中文，会出错
         else:
             print u"添加命令失败：" + x
     f.close()
@@ -160,7 +171,7 @@ def add_cmd(cmd_file,add_list):
 exefid_list = []
 def mycmd_execute(cmd):
     '''当做自定义命令执行'''
-    for x in cmd_list:
+    for x in config.cmd_list:
         if x[0] == cmd: # 依次顺序查找命令，直到找到后执行并退出执行
             fid = os.popen(x[1])
             exefid_list.append(fid) # 运行并将返回管道存储，若没有这里的存储，则要等到这个运行的程序完成后才能返回（才能输入新命令）
@@ -185,10 +196,11 @@ if __name__ == "__main__":
     if argv_len > 1: # 当输入参数个数大于1时（如将文件拖到本执行文件执行），就为添加命令到文件
         add_cmd(config.cmd_file,sys.argv[1:]) # 添加命令到文件
     else: # 当输入参数量为1时表示，直接运行，进行输入命令处理
-        init(config.cmd_file) # 初始化命令，从指定文件中读取命令及其内容
-        cmd = get_cmd_input()
+        cmd = 'init' # 开始就先初始化
         while cmd != 'quit': # 输入quit时退出
-            if mycmd_execute(cmd) != 0: # 如果自定义命令执行失败，即cmd不在自定命令中，则当做系统命令来执行
+            if cmd == 'init': # 重新初始化命令
+                init(config.cmd_file) # 初始化命令，从指定文件中读取命令及其内容
+            elif mycmd_execute(cmd) != 0: # 如果自定义命令执行失败，即cmd不在自定命令中，则当做系统命令来执行
                 syscmd_execute(cmd)
             cmd = get_cmd_input() # 执行后继续输入
-        disp_msg(u"退出？")
+        disp_msg(u"退出！")
