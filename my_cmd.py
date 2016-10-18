@@ -146,6 +146,13 @@ def disp_msg(msg):
     print u"\t输入Enter继续"
     raw_input()
 
+def disp_msg2(msg1,msg2):
+    '''显示信息，处理输出中文变量字符串可能出现的错误'''
+    try:
+        print msg1 + msg2
+    except:
+        print u"输出信息有中文导致出错(仅仅显示有错，操作没问题)！"
+
 def add_cmd(cmd_file,add_list):
     f = file(cmd_file,'a') # 打开存储命令的文件
     for x in add_list:
@@ -153,18 +160,23 @@ def add_cmd(cmd_file,add_list):
         last_suffix = x.rfind(config.suffix_char) # 用于取得文件名后缀
         if last_suffix < 0: # 添加没有后缀的文件或目录作为命令
             f.write(x[last_separate+1:] + config.div_char + x + "\n") # 将命令名和命令内容用config.div_char分开后写入文件中
-            print u"添加命令成功：" + x[last_separate+1:]
+            # print u"添加命令成功：" + x[last_separate+1:]
+            disp_msg2(u"添加命令成功：",x[last_separate+1:])
         elif last_separate < last_suffix: # 有后缀的文件(last_suffix>-1)，当然这里没有考虑.在文件名首的情况
             if config.suffixs == []: # 若设定为[]则表示支持所有的文件
                 f.write(x[last_separate+1:last_suffix] + config.div_char + x + "\n") # 将命令名和命令内容用config.div_char分开后写入文件中
-                print u"添加命令成功：" + x[last_separate+1:last_suffix]
+                # print u"添加命令成功：" + x[last_separate+1:last_suffix]
+                disp_msg2(u"添加命令成功：",x[last_separate+1:last_suffix])
             elif x[last_suffix+1:] in config.suffixs: # 否则要后缀在suffixs中存在才添加
                 f.write(x[last_separate+1:last_suffix] + config.div_char + x + "\n") # 将命令名和命令内容用config.div_char分开后写入文件中
-                print u"添加命令成功：" + x[last_separate+1:last_suffix]
+                # print u"添加命令成功：" + x[last_separate+1:last_suffix]
+                disp_msg2(u"添加命令成功：",x[last_separate+1:last_suffix])
             else:
-                print u"不支持的后缀：" + x # 路径或文件名中，即x中有中文，会出错
+                # print u"不支持的后缀：" + x # 路径或文件名中，即x中有中文，会出错
+                disp_msg2(u"不支持的后缀：",x) # 路径或文件名中，即x中有中文，会出错
         else:
-            print u"添加命令失败：" + x
+            # print u"添加命令失败：" + x
+            disp_msg2(u"添加命令失败：",x)
     f.close()
     disp_msg(u"添加命令完成！")
 

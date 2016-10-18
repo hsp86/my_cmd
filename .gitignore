@@ -2,4 +2,4 @@
 dir.db
 *.pyc
 exe
-
+*.lnk
