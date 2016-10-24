@@ -66,6 +66,7 @@ def fuzzy_search(src_list,search_str):
         res_num,res_list = search_in(src_list,search_str)
         if res_num == 0: # 若还没有包含search_str的项就搜索包含search_str中各字符的项
             res_num,res_list = search_have(src_list,search_str)
+    res_list.sort()
     return res_num,res_list
 
 def del_display(st):
